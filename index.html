@@ -1,0 +1,90 @@
+<!DOCTYPE HTML>
+<body>
+	<canvas id="canvas" style="width: 100%;"></canvas>
+</body>
+
+<script>
+	var canvas = document.getElementById('canvas');
+	function BETTERCANVAS(width, height){
+		this.canvas = this._createCanvas(width, height);
+		this.ctx = this.canvas.getContext("2d");
+		this.width = width;
+		this.height = height;
+		this.pointList = new Uint8ClampedArray(width*height*4);
+		this.size = width*height;
+	}
+	BETTERCANVAS.prototype = {
+		_createCanvas:function(width, height){
+			var canvas = document.getElementById('canvas');
+			canvas.width = width;
+			canvas.height = height;
+			return canvas;
+		},
+		addBall: function(x0, y0, radius){
+            var orad = radius;
+            function map_range(value, low1, high1, low2, high2) {
+                return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
+            }
+            var increment = map_range(1, 0, orad,0,255);
+            var alpha = 0;
+            while(radius>0){
+                var x = radius;
+                var y = 0;
+                var radiusError = 1 - x;
+                while (x >= y){
+                    var positions = [
+                        this.getRIndexPos(x + x0, y + y0),
+                        this.getRIndexPos(y + x0, x + y0),
+                        this.getRIndexPos(-x + x0, y + y0),
+                        this.getRIndexPos(-y + x0, x + y0),
+                        this.getRIndexPos(-x + x0, -y + y0),
+                        this.getRIndexPos(-y + x0, -x + y0),
+                        this.getRIndexPos(x + x0, -y + y0),
+                        this.getRIndexPos(y + x0, -x + y0)
+                    ];
+                    for(var i = 0; i<positions.length; i++){
+                        this.pointList[positions[i]+3] = Math.min(this.pointList[positions[i]+3]+alpha, 255); //setting alpha
+                    }
+                    y++;
+                    if (radiusError<0){
+                        radiusError += 2 * y + 1;
+                    }
+                    else{
+                        x--;
+                        radiusError += 2 * (y - x) + 1;
+                    }
+                } 
+                radius--;
+                alpha += increment;
+            }
+            if(!this.imageData) this.imageData = this.ctx.createImageData(this.width, this.height);
+            this.imageData.data.set(this.pointList);
+            this.ctx.putImageData(this.imageData, 0, 0);
+
+    },
+		getRIndexPos: function(x,y){
+			var rIndexPos = (y*this.width+x)*4;
+			return rIndexPos;
+		}
+	};
+	var b = new BETTERCANVAS(600, 400);
+	var xpos = 100;
+	var time = new Date();
+	var counter = 0;
+	var inte = setInterval(function(){
+		b.ctx.clearRect(0,0,b.width, b.height);
+		xpos++;
+		b.addBall(xpos,100,50);
+		counter ++;
+	}, 0);
+	
+	var cleared = function(){
+		clearInterval(inte);
+		var diff = (new Date() - time)/1000;
+		console.log(counter, diff)
+		console.log("FPS:" + counter/diff);
+	}
+	b.addBall(100,100,50);
+	
+
+</script>
