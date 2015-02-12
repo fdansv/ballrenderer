@@ -11,6 +11,7 @@
 		this.height = this.canvas.clientHeight;
 		this.size = this.width * this.height;
 		this.pointList = new Uint8ClampedArray(this.size * 4);
+		this.radius = 30;
 
 	}
 	BETTERCANVAS.prototype = {
@@ -18,17 +19,17 @@
 			var canvas = document.getElementById('canvas');
 			return canvas;
 		},
-		addBall: function(x0, y0, radius){
-            var orad = radius;
-            var increment = map_range(1, 0, orad,0,255);
-            var x = radius;
+		addBall: function(x0, y0){
+            var orad = this.radius;
+            var increment = this.map_range(1, 0, orad,0,255);
+            var x = this.radius;
             var y = 0;
             var radiusError = 1 - x;
             while (x >= y){
-                this.horizontalLine(-x + x0, y + y0, x + x0, y + y0);
-                this.horizontalLine(-y + x0, -x + y0, y + x0, -x + y0);
-                this.horizontalLine(-x + x0, -y + y0, x + x0, -y + y0);
-                this.horizontalLine(-y + x0, x + y0, y + x0, x + y0);
+                this.horizontalLine(-x + x0, y + y0, x + x0, y + y0, x0,y0);
+                this.horizontalLine(-y + x0, -x + y0, y + x0, -x + y0, x0,y0);
+                this.horizontalLine(-x + x0, -y + y0, x + x0, -y + y0, x0,y0);
+                this.horizontalLine(-y + x0, x + y0, y + x0, x + y0, x0,y0);
                 y++;
                 if (radiusError<0){
                     radiusError += 2 * y + 1;
@@ -37,15 +38,21 @@
                     x--;
                     radiusError += 2 * (y - x) + 1;
                 }
-            } 
-            radius--;
+            }
 		},
-		horizontalLine: function(xi, yi, xf, yf){
+		addPoint: function(x, y, alpha){
+
+		},
+		horizontalLine: function(xi, yi, xf, yf, x0, y0){
+			function lineDistance(x,y){
+			  var xs = Math.pow(x - x0, 2);
+			  var ys = Math.pow(y - y0, 2);
+			  return Math.sqrt( xs + ys );
+			}
 			// Assumes xi is on the left and xf is on the right
-			var width = Math.round(Math.abs(xi-xf)/2);
 			var xPointer = xi;
 			while (xPointer <= xf){
-				this.pointList[this.getRIndexPos(xPointer, yi) + 3] = 255;
+				this.pointList[this.getRIndexPos(xPointer, yi) + 3] = Math.round(this.map_range(lineDistance(xPointer, yi), 0, this.radius, 180, 0));
 				xPointer ++;
 			}
 		},
@@ -67,10 +74,8 @@
 	var time = new Date();
 	var counter = 0;
 
-	b.canvas.onclick = function(e){
-		b.addBall(e.x, e.y, 20);
-		b.apply()
-	}
+		b.addBall(100, 100, 20);
+		b.apply();
 	
 
 </script>
