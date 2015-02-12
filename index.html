@@ -4,87 +4,73 @@
 </body>
 
 <script>
-	var canvas = document.getElementById('canvas');
-	function BETTERCANVAS(width, height){
-		this.canvas = this._createCanvas(width, height);
+	function BETTERCANVAS(canvasID){
+		this.canvas = document.getElementById(canvasID);
 		this.ctx = this.canvas.getContext("2d");
-		this.width = width;
-		this.height = height;
-		this.pointList = new Uint8ClampedArray(width*height*4);
-		this.size = width*height;
+		this.width = this.canvas.clientWidth;
+		this.height = this.canvas.clientHeight;
+		this.size = this.width * this.height;
+		this.pointList = new Uint8ClampedArray(this.size * 4);
+
 	}
 	BETTERCANVAS.prototype = {
-		_createCanvas:function(width, height){
+		_createCanvas:function(){
 			var canvas = document.getElementById('canvas');
-			canvas.width = width;
-			canvas.height = height;
 			return canvas;
 		},
 		addBall: function(x0, y0, radius){
             var orad = radius;
-            function map_range(value, low1, high1, low2, high2) {
-                return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
-            }
             var increment = map_range(1, 0, orad,0,255);
-            var alpha = 0;
-            while(radius>0){
-                var x = radius;
-                var y = 0;
-                var radiusError = 1 - x;
-                while (x >= y){
-                    var positions = [
-                        this.getRIndexPos(x + x0, y + y0),
-                        this.getRIndexPos(y + x0, x + y0),
-                        this.getRIndexPos(-x + x0, y + y0),
-                        this.getRIndexPos(-y + x0, x + y0),
-                        this.getRIndexPos(-x + x0, -y + y0),
-                        this.getRIndexPos(-y + x0, -x + y0),
-                        this.getRIndexPos(x + x0, -y + y0),
-                        this.getRIndexPos(y + x0, -x + y0)
-                    ];
-                    for(var i = 0; i<positions.length; i++){
-                        this.pointList[positions[i]+3] = Math.min(this.pointList[positions[i]+3]+alpha, 255); //setting alpha
-                    }
-                    y++;
-                    if (radiusError<0){
-                        radiusError += 2 * y + 1;
-                    }
-                    else{
-                        x--;
-                        radiusError += 2 * (y - x) + 1;
-                    }
-                } 
-                radius--;
-                alpha += increment;
-            }
-            if(!this.imageData) this.imageData = this.ctx.createImageData(this.width, this.height);
-            this.imageData.data.set(this.pointList);
-            this.ctx.putImageData(this.imageData, 0, 0);
-
-    },
+            var x = radius;
+            var y = 0;
+            var radiusError = 1 - x;
+            while (x >= y){
+                this.horizontalLine(-x + x0, y + y0, x + x0, y + y0);
+                this.horizontalLine(-y + x0, -x + y0, y + x0, -x + y0);
+                this.horizontalLine(-x + x0, -y + y0, x + x0, -y + y0);
+                this.horizontalLine(-y + x0, x + y0, y + x0, x + y0);
+                y++;
+                if (radiusError<0){
+                    radiusError += 2 * y + 1;
+                }
+                else{
+                    x--;
+                    radiusError += 2 * (y - x) + 1;
+                }
+            } 
+            radius--;
+		},
+		horizontalLine: function(xi, yi, xf, yf){
+			// Assumes xi is on the left and xf is on the right
+			var width = Math.round(Math.abs(xi-xf)/2);
+			var xPointer = xi;
+			while (xPointer <= xf){
+				this.pointList[this.getRIndexPos(xPointer, yi) + 3] = 255;
+				xPointer ++;
+			}
+		},
+		apply: function(){
+			if(!this.imageData) this.imageData = this.ctx.createImageData(this.width, this.height);
+		    this.imageData.data.set(this.pointList);
+		    this.ctx.putImageData(this.imageData, 0, 0);
+		},
 		getRIndexPos: function(x,y){
 			var rIndexPos = (y*this.width+x)*4;
 			return rIndexPos;
-		}
+		},
+		map_range: function(value, low1, high1, low2, high2) {
+            return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
+        }
 	};
-	var b = new BETTERCANVAS(600, 400);
+	var b = new BETTERCANVAS("canvas");
 	var xpos = 100;
 	var time = new Date();
 	var counter = 0;
-	var inte = setInterval(function(){
-		b.ctx.clearRect(0,0,b.width, b.height);
-		xpos++;
-		b.addBall(xpos,100,50);
-		counter ++;
-	}, 0);
-	
-	var cleared = function(){
-		clearInterval(inte);
-		var diff = (new Date() - time)/1000;
-		console.log(counter, diff)
-		console.log("FPS:" + counter/diff);
+
+	b.canvas.onclick = function(e){
+		b.addBall(e.x, e.y, 20);
+		b.apply()
 	}
-	b.addBall(100,100,50);
 	
 
 </script>
