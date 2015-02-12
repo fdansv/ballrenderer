@@ -12,6 +12,7 @@
 		this.size = this.width * this.height;
 		this.pointList = new Uint8ClampedArray(this.size * 4);
 		this.radius = 30;
+		this.drawnTemp = {};
 
 	}
 	BETTERCANVAS.prototype = {
@@ -39,9 +40,10 @@
                     radiusError += 2 * (y - x) + 1;
                 }
             }
+            this.drawnTemp = {};
 		},
 		addPoint: function(x, y, alpha){
-
+			this.pointList[this.getRIndexPos(x, y) + 3] = Math.min(this.pointList[this.getRIndexPos(x, y) + 3]+alpha, 255);
 		},
 		horizontalLine: function(xi, yi, xf, yf, x0, y0){
 			function lineDistance(x,y){
@@ -52,7 +54,11 @@
 			// Assumes xi is on the left and xf is on the right
 			var xPointer = xi;
 			while (xPointer <= xf){
-				this.pointList[this.getRIndexPos(xPointer, yi) + 3] = Math.round(this.map_range(lineDistance(xPointer, yi), 0, this.radius, 180, 0));
+				if(typeof this.drawnTemp[xPointer+":"+yi] === "undefined"){
+					var alpha = Math.round(this.map_range(lineDistance(xPointer, yi), 0, this.radius, 180, 0));
+					this.addPoint(xPointer, yi, alpha);
+					this.drawnTemp[xPointer+":"+yi]=true;
+				}
 				xPointer ++;
 			}
 		},
@@ -75,6 +81,7 @@
 	var counter = 0;
 
 		b.addBall(100, 100, 20);
+		b.addBall(120, 100, 20);
 		b.apply();
 	
 
