@@ -62,8 +62,14 @@
 				xPointer ++;
 			}
 		},
-		apply: function(){
+		draw: function(){
 			if(!this.imageData) this.imageData = this.ctx.createImageData(this.width, this.height);
+		    this.imageData.data.set(this.pointList);
+		    this.ctx.putImageData(this.imageData, 0, 0);
+		},
+		invalidate: function(){
+			if(!this.imageData) this.imageData = this.ctx.createImageData(this.width, this.height);
+			this.pointList = new Uint8ClampedArray(this.size * 4);
 		    this.imageData.data.set(this.pointList);
 		    this.ctx.putImageData(this.imageData, 0, 0);
 		},
