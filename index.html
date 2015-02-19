@@ -15,7 +15,7 @@
 		this.radius = 30;
 		this.drawnTemp = {};
 		this.prof = 0;
-
+		this.gradient = {};
 	}
 	BETTERCANVAS.prototype = {
 		addBall: function(x0, y0){
@@ -62,12 +62,13 @@
 		},
 		contour: function(granularity){
 			var step = 255/granularity;
-			var i = 0, a = [];
+			var i = 0, a = new Uint8ClampedArray(granularity+1), c=0;
 			while (i<255){
-				a.push(i);
-				i+=Math.round(step);
+				a[c] = i;
+				i += step;
+				c++;
 			}
-			a.push(255);
+			a[a.length-1] = 255;
 			var l = -step/2;
 			for(var i = 0; i<a.length; i++){
 				var thisAlpha = a[i]/255;
