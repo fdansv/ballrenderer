@@ -1,25 +1,23 @@
 <!DOCTYPE HTML>
 <body>
-	<canvas id="canvas" style="width: 100%;"></canvas>
+	<canvas id="canvas" width = "500" height = "500"></canvas>
 </body>
 
 <script>
 	function BETTERCANVAS(canvasID){
 		this.canvas = document.getElementById(canvasID);
 		this.ctx = this.canvas.getContext("2d");
-		this.width = this.canvas.clientWidth;
-		this.height = this.canvas.clientHeight;
+		this.width = this.canvas.width;
+		this.height = this.canvas.height;
 		this.size = this.width * this.height;
 		this.pointList = new Uint8ClampedArray(this.size * 4);
+		this.secondLayer = new Uint8ClampedArray(this.size * 4);
 		this.radius = 30;
 		this.drawnTemp = {};
+		this.prof = 0;
 
 	}
 	BETTERCANVAS.prototype = {
-		_createCanvas:function(){
-			var canvas = document.getElementById('canvas');
-			return canvas;
-		},
 		addBall: function(x0, y0){
             var orad = this.radius;
             var increment = this.map_range(1, 0, orad,0,255);
@@ -43,7 +41,7 @@
             this.drawnTemp = {};
 		},
 		addPoint: function(x, y, alpha){
-			this.pointList[this.getRIndexPos(x, y) + 3] = Math.min(this.pointList[this.getRIndexPos(x, y) + 3]+alpha, 255);
+			this.pointList[this.getRIndexPos(x, y) + 3] = this.pointList[this.getRIndexPos(x, y) + 3]+alpha, 255;
 		},
 		horizontalLine: function(xi, yi, xf, yf, x0, y0){
 			function lineDistance(x,y){
@@ -55,14 +53,39 @@
 			var xPointer = xi;
 			while (xPointer <= xf){
 				if(typeof this.drawnTemp[xPointer+":"+yi] === "undefined"){
-					var alpha = Math.round(this.map_range(lineDistance(xPointer, yi), 0, this.radius, 180, 0));
+					var alpha = Math.round(this.map_range(lineDistance(xPointer, yi), 0, this.radius, 30, 0));
 					this.addPoint(xPointer, yi, alpha);
 					this.drawnTemp[xPointer+":"+yi]=true;
 				}
 				xPointer ++;
 			}
 		},
+		contour: function(granularity){
+			var step = 255/granularity;
+			var i = 0, a = [];
+			while (i<255){
+				a.push(i);
+				i+=Math.round(step);
+			}
+			a.push(255);
+			var l = -step/2;
+			for(var i = 0; i<a.length; i++){
+				var thisAlpha = a[i]/255;
+				this.ctx.fillStyle = "rgba(0, 0, 0, " + thisAlpha + ")";
+				this.ctx.fillRect(0, l, 1, step);
+				l+=step;
+			}
+			var _grad = this.ctx.getImageData(0, 0, 1, 255).data;
+			this.ctx.clearRect(0, 0, 1, 256);
+			
+			for (var i = 0; i< this.pointList.length; i+=4){
+				var currentAlpha = this.pointList[i+3];
+				this.pointList[i+3] = this.pointList[i+3] === 255? 255: _grad[currentAlpha*4+3];
+			}
+			this.draw();
+		},
 		draw: function(){
+			// this.contour();
 			if(!this.imageData) this.imageData = this.ctx.createImageData(this.width, this.height);
 		    this.imageData.data.set(this.pointList);
 		    this.ctx.putImageData(this.imageData, 0, 0);
@@ -81,14 +104,27 @@
             return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
         }
 	};
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
 	var b = new BETTERCANVAS("canvas");
-	var xpos = 100;
-	var time = new Date();
-	var counter = 0;
-
-		b.addBall(100, 100, 20);
-		b.addBall(120, 100, 20);
-		b.apply();
+	b.radius = 30;
+	var interval;
+	var md = false
+	document.onmousedown = function(e){
+		md = true;
+		b.invalidate();
+	};
+	document.onmousemove = function(e){
+		if(md){
+			b.addBall(e.x, e.y); 
+			b.draw();
+		}
+	}
+	document.onmouseup = function(e){
+		md = false
+		b.contour(10);
+	};
+	
 	
 
 </script>
