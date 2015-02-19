@@ -81,15 +81,25 @@
 			
 			for (var i = 0; i< this.pointList.length; i+=4){
 				var currentAlpha = this.pointList[i+3];
-				this.pointList[i+3] = this.pointList[i+3] === 255? 255: _grad[currentAlpha*4+3];
+				this.secondLayer[i+3] = this.pointList[i+3] === 255? 255: _grad[currentAlpha*4+3];
 			}
-			this.draw();
 		},
 		draw: function(){
-			// this.contour();
+			this.contour(9);
 			if(!this.imageData) this.imageData = this.ctx.createImageData(this.width, this.height);
-		    this.imageData.data.set(this.pointList);
+		    this.imageData.data.set(this.secondLayer);
 		    this.ctx.putImageData(this.imageData, 0, 0);
+		},
+		mergeLayers: function(from, to){
+			if (from.length !== to.length) throw("layers aren't of the same size"); return;
+			for (var i = 0; i<to.length; i++){
+				if(from[i+3]>0){
+					to[i] = from[i];
+					to[i+1] = from[i+1];
+					to[i+2] = from[i+2];
+					to[i+3] = from[i+3];
+				}
+			}
 		},
 		invalidate: function(){
 			if(!this.imageData) this.imageData = this.ctx.createImageData(this.width, this.height);
@@ -101,31 +111,48 @@
 			var rIndexPos = (y*this.width+x)*4;
 			return rIndexPos;
 		},
+		getXYFromRIndex: function(index){
+			var x = (index % (this.width*4))/4;
+			var y = (index - 4 * x) / (4 * this.width);
+			return [x,y];
+		},
+		// [Up, down, left, right]
+		getSurrounding: function(index){
+			var point = getXYFromRIndex(index);
+			var down = getRIndexPos(point[0],point[1]+1);
+			var up = getRIndexPos(point[0],point[1]-1);
+			var left = getRIndexPos(point[0]-1,point[1]);
+			var right = getRIndexPos(point[0]+1,point[1]);
+			return [up,down,left,right]
+		},
 		map_range: function(value, low1, high1, low2, high2) {
             return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
         }
 	};
+
 	canvas.width = window.innerWidth;
 	canvas.height = window.innerHeight;
 	var b = new BETTERCANVAS("canvas");
-	b.radius = 30;
+	b.radius = 60;
 	var interval;
 	var md = false
+
 	document.onmousedown = function(e){
 		md = true;
-		b.invalidate();
 	};
 	document.onmousemove = function(e){
 		if(md){
 			b.addBall(e.x, e.y); 
 			b.draw();
 		}
-	}
+	};
 	document.onmouseup = function(e){
 		md = false
-		b.contour(10);
 	};
-	
-	
+	document.onkeypress = function(e){
+		if (event.which == 13 || event.keyCode == 13) {
+            b.invalidate();
+        }
+	}
 
 </script>
