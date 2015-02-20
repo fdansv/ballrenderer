@@ -25,6 +25,7 @@
             var y = 0;
             var radiusError = 1 - x;
             while (x >= y){
+            	// DO NOT TOUCH THE FOLLOWING
                 this.horizontalLine(-x + x0, y + y0, x + x0, y + y0, x0,y0);
                 this.horizontalLine(-y + x0, -x + y0, y + x0, -x + y0, x0,y0);
                 this.horizontalLine(-x + x0, -y + y0, x + x0, -y + y0, x0,y0);
@@ -80,20 +81,23 @@
 			this.ctx.clearRect(0, 0, 1, 256);
 			
 			for (var i = 0; i< this.pointList.length; i+=4){
+				if(this.pointList[i+3] === 0) continue;
 				var currentAlpha = this.pointList[i+3];
 				this.secondLayer[i+3] = this.pointList[i+3] === 255? 255: _grad[currentAlpha*4+3];
 			}
 		},
-		draw: function(){
-			this.contour(9);
+		draw: function(dataArray){
+			if(!dataArray) dataArray = this.pointList;
+			else this.secondLayer = dataArray;
 			if(!this.imageData) this.imageData = this.ctx.createImageData(this.width, this.height);
-		    this.imageData.data.set(this.secondLayer);
+		    this.imageData.data.set(dataArray);
 		    this.ctx.putImageData(this.imageData, 0, 0);
 		},
 		mergeLayers: function(from, to){
 			if (from.length !== to.length) throw("layers aren't of the same size"); return;
 			for (var i = 0; i<to.length; i++){
 				if(from[i+3]>0){
+					// There's a better way of doing this but I was lazy.
 					to[i] = from[i];
 					to[i+1] = from[i+1];
 					to[i+2] = from[i+2];
@@ -116,25 +120,62 @@
 			var y = (index - 4 * x) / (4 * this.width);
 			return [x,y];
 		},
-		// [Up, down, left, right]
-		getSurrounding: function(index){
-			var point = getXYFromRIndex(index);
-			var down = getRIndexPos(point[0],point[1]+1);
-			var up = getRIndexPos(point[0],point[1]-1);
-			var left = getRIndexPos(point[0]-1,point[1]);
-			var right = getRIndexPos(point[0]+1,point[1]);
-			return [up,down,left,right]
+		// Clockwise. Again, there definitely is a better way.
+		getNeighbors: function(index){
+			var point = this.getXYFromRIndex(index);
+			var xp1 = Math.min(point[0]+1,this.width*4);
+			var xm1 = Math.max(point[0]-1, 0);
+			var yp1 = Math.min(point[1]+1,this.height*4);
+			var ym1 = Math.max(point[1]-1, 0);
+			return [this.getRIndexPos(point[0], ym1),  // north
+				this.getRIndexPos(xp1, ym1),  // northeast
+				this.getRIndexPos(xp1, point[1]),  // east
+				this.getRIndexPos(xp1, yp1),  // southeast
+				this.getRIndexPos(point[0], yp1),  // south
+				this.getRIndexPos(xm1, yp1),  // southwest
+				this.getRIndexPos(xm1, point[1]),  // west
+				this.getRIndexPos(xm1, ym1)  // northwest
+				];  // northwest
 		},
 		map_range: function(value, low1, high1, low2, high2) {
             return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
+        },
+        isEmpty: function(layer) {
+        	for (var i = 0; i<layer.length; i+=4){
+        		if(layer[i+3] > 0) return false;
+        	}
+        	return true;
+        },
+        isopleth: function(factor){
+        	if(!(factor>0)) factor = 1;
+        	var reallyProvisionalLayer = new Uint8ClampedArray(this.size * 4);
+        	for (var i = 0; i<this.secondLayer.length; i+=4){
+        		var alpha = this.secondLayer[i + 3];
+        		if (alpha > 0){
+        			var neighbors = this.getNeighbors(i);
+        			for (var n = 0; n<neighbors.length; n++){
+        				var index = neighbors[n];
+        				if(this.secondLayer[index+3] === 0 || this.secondLayer[index+3]!==this.secondLayer[i+3]){
+        					reallyProvisionalLayer[index+3] = 255;
+        				}
+        			}
+        		}
+        	}
+        	//this.invalidate();
+        	this.draw(reallyProvisionalLayer);
         }
 	};
 
 	canvas.width = window.innerWidth;
 	canvas.height = window.innerHeight;
 	var b = new BETTERCANVAS("canvas");
+
+	// b.ctx.fillRect(30,30,400,400);
+	// var data = b.ctx.getImageData(0,0,b.width,b.height).data;
+	// b.ctx.clearRect(30,30,400,400);
+	// b.draw(data);
 	b.radius = 60;
-	var interval;
+	// var interval;
 	var md = false
 
 	document.onmousedown = function(e){
@@ -143,15 +184,19 @@
 	document.onmousemove = function(e){
 		if(md){
 			b.addBall(e.x, e.y); 
-			b.draw();
+			b.contour(8);
+			b.isopleth();
 		}
 	};
 	document.onmouseup = function(e){
+		var data = b.ctx.getImageData(0,0,b.width,b.height).data;
+		b.ctx.clearRect(0,0,b.width,b.height);
+		b.draw(data);
 		md = false
 	};
 	document.onkeypress = function(e){
 		if (event.which == 13 || event.keyCode == 13) {
-            b.invalidate();
+            
         }
 	}
 
