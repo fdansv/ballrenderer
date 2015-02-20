@@ -123,19 +123,11 @@
 		// Clockwise. Again, there definitely is a better way.
 		getNeighbors: function(index){
 			var point = this.getXYFromRIndex(index);
-			var xp1 = Math.min(point[0]+1,this.width*4);
-			var xm1 = Math.max(point[0]-1, 0);
 			var yp1 = Math.min(point[1]+1,this.height*4);
 			var ym1 = Math.max(point[1]-1, 0);
-			return [this.getRIndexPos(point[0], ym1),  // north
-				this.getRIndexPos(xp1, ym1),  // northeast
-				this.getRIndexPos(xp1, point[1]),  // east
-				this.getRIndexPos(xp1, yp1),  // southeast
-				this.getRIndexPos(point[0], yp1),  // south
-				this.getRIndexPos(xm1, yp1),  // southwest
-				this.getRIndexPos(xm1, point[1]),  // west
-				this.getRIndexPos(xm1, ym1)  // northwest
-				];  // northwest
+			var north = this.getRIndexPos(point[0], ym1);
+			var south = this.getRIndexPos(point[0], yp1);
+			return [north, north + 4, index + 4, south + 4, south, south - 4, index - 4, north -4];
 		},
 		map_range: function(value, low1, high1, low2, high2) {
             return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
@@ -174,7 +166,7 @@
 	// var data = b.ctx.getImageData(0,0,b.width,b.height).data;
 	// b.ctx.clearRect(30,30,400,400);
 	// b.draw(data);
-	b.radius = 60;
+	b.radius = 20;
 	// var interval;
 	var md = false
 
@@ -184,7 +176,7 @@
 	document.onmousemove = function(e){
 		if(md){
 			b.addBall(e.x, e.y); 
-			b.contour(8);
+			b.contour(5);
 			b.isopleth();
 		}
 	};
